@@ -150,11 +150,6 @@ void *buddy_alloc(int size){
 
   printf("size is currently [%i] \n", size);
 
-  // TODO TODO TODO the size argument is in BYTES, NOT ORDER. NEEDS FIX.
-  // not sure if this works, untested
-
-  
-
   int blocksize = next_power2(size);
   unsigned int blockorder = 0 ;
   while( blocksize>>=1 ) blockorder++;
@@ -167,13 +162,23 @@ void *buddy_alloc(int size){
     blockorder = MIN_ORDER;
   }
 
-  // Look across free_list for smallest size free block that's big enough
+  // Look across free_list for smallest size free block that's big enough.
+  // Starts at 'blockorder' because we don't want any size smaller than that.
   int freeorder = blockorder;
   printf("blockorder is currently [%i] \n", blockorder);
-  while(list_empty(&free_area[freeorder]) != 0 && freeorder <= MAX_ORDER){
+  // TODO maybe problems here if they ask for more memory than is available or
+  // more than the size of the memory. Will likely segfault if freeorder >
+  // MAX_ORDER
+  while(list_empty(&free_area[freeorder]) != 0){
     printf("free_area order [%i] is not available\n", freeorder);
     freeorder++;
   }
+
+  // Stopgap helps, but doesn't catch memory in use segfault
+  if(freeorder > MAX_ORDER){
+    return NULL;
+  }
+
   printf("freeorder is currently [%i] \n", freeorder);
   while(freeorder > blockorder){
     page_t* page;
