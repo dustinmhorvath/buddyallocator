@@ -18,6 +18,8 @@
 #include "buddy.h"
 #include "list.h"
 
+#include "math.h"
+
 /**************************************************************************
  * Public Definitions
  **************************************************************************/
@@ -146,22 +148,23 @@ unsigned int next_power2(unsigned int size){
  */
 void *buddy_alloc(int size){
 
+  printf("size is currently [%i] \n", size);
 
   // TODO TODO TODO the size argument is in BYTES, NOT ORDER. NEEDS FIX.
   // not sure if this works, untested
-  double blockorder = size;
-  if(blockorder == 0) {
-    blockorder = 1;
+
+  
+
+  int blocksize = next_power2(size);
+  unsigned int blockorder = 0 ;
+  while( blocksize>>=1 ) blockorder++;
+
+  printf("next_power2 set blockorder = [%i] \n", blockorder);
+  if(blockorder > MAX_ORDER){
+    blockorder = MAX_ORDER;
   }
   else if(blockorder < MIN_ORDER){
     blockorder = MIN_ORDER;
-  }
-  else if(size > MAX_ORDER){
-    blockorder = MAX_ORDER;
-  }   
-  else {
-    // Get the block size we actually need, rounded up
-    blockorder = (int)next_power2(blockorder);
   }
 
   // Look across free_list for smallest size free block that's big enough
@@ -176,7 +179,7 @@ void *buddy_alloc(int size){
     page_t* page;
     page = list_entry(&free_area[freeorder], page_t, list);
     //list_del_init(&free_area[freeorder]);
-    printf("Checked page order [%i] in use ? %i", freeorder, page -> inuse);
+    //printf("Checked page order [%i] in use ? %i", freeorder, page -> inuse);
     freeorder--;
   }
 
