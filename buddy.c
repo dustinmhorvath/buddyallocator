@@ -51,6 +51,8 @@
 typedef struct {
   struct list_head list;
 
+  char* address;
+
   int inuse;
   char owner;
 
@@ -96,7 +98,8 @@ void buddy_init(){
   for (i = 0; i < n_pages; i++) {
     g_pages[i].inuse = 0;
     g_pages[i].owner = '\0';
-    //INIT_LIST_HEAD(&(g_pages[i].list));
+    // Correct?
+    g_pages[i].address = PAGE_TO_ADDR(i);
 
   }
 
@@ -142,20 +145,50 @@ unsigned int next_power2(unsigned int size){
  * @return memory block address
  */
 void *buddy_alloc(int size){
-  //TODO
 
-  if(size == 0) {
-    size = 1;
-  } 
+
+  // TODO TODO TODO the size argument is in BYTES, NOT ORDER. NEEDS FIX.
+  // not sure if this works, untested
+  double blockorder = size;
+  if(blockorder == 0) {
+    blockorder = 1;
+  }
+  else if(blockorder < MIN_ORDER){
+    blockorder = MIN_ORDER;
+  }
+  else if(size > MAX_ORDER){
+    blockorder = MAX_ORDER;
+  }   
   else {
     // Get the block size we actually need, rounded up
-    size = (int)next_power2(size);
+    blockorder = (int)next_power2(blockorder);
   }
 
-  // these are causing a segfault, but I'm pretty sure something like this
-  // will need done
+  // Look across free_list for smallest size free block that's big enough
+  int freeorder = blockorder;
+  printf("blockorder is currently [%i] \n", blockorder);
+  while(list_empty(&free_area[freeorder]) != 0 && freeorder <= MAX_ORDER){
+    printf("free_area order [%i] is not available\n", freeorder);
+    freeorder++;
+  }
+  printf("freeorder is currently [%i] \n", freeorder);
+  while(freeorder > blockorder){
+    page_t* page;
+    page = list_entry(&free_area[freeorder], page_t, list);
+    //list_del_init(&free_area[freeorder]);
+    printf("Checked page order [%i] in use ? %i", freeorder, page -> inuse);
+    freeorder--;
+  }
 
-  //list_del(&free_area[MAX_ORDER]);
+
+  //list_del_init(&free_area[MAX_ORDER]);
+  // this line executes without segfault
+  //
+  //list_add(&g_pages[0].list, &free_area[MAX_ORDER]);
+  
+  // this is segfaulting for some reason
+  //
+
   //list_add(&g_pages[1<<size].list, &free_area[size]);
   
 
