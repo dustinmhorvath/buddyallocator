@@ -186,17 +186,14 @@ void *buddy_alloc(int size){
 
   // Split blocks until small enough
   printf("freeorder is currently [%i] \n", freeorder);
+  page_t* page;
   while(freeorder > blockorder){
 
-    page_t* page;
     struct list_head *ptr;
-    for (ptr = free_area[freeorder].next; ptr != &free_area[freeorder]; ptr = ptr->next) {
-      page = list_entry(ptr, page_t, list);
-      break;
-    }
-
+    page = list_entry(free_area[freeorder].next, page_t, list);
     
-    //list_del_init(&free_area[freeorder]);
+    
+    list_del_init(page);
 
     printf("Checked page order [%i] in use ? %d \n", freeorder, page -> inuse);
     printf("Checked page order [%i] has index ? %d \n", freeorder, page -> index); 
@@ -205,18 +202,21 @@ void *buddy_alloc(int size){
     // now working in smaller order
     freeorder--;
 
-  //  list_add_tail(&g_pages[ page -> index ].list, &free_area[freeorder]);
-  //  list_add_tail(&g_pages[ page -> index + (1<<freeorder) ].list, &free_area[freeorder]);
+    printf("Checked page order [%i] has second index ? %d \n", freeorder, (page -> index) + (1<<(freeorder-1))/PAGE_SIZE);
+
+    list_add_tail(&g_pages[ page -> index ].list, &free_area[freeorder]);
+    list_add_tail(&g_pages[ page -> index + (1<<(freeorder-1))/PAGE_SIZE ].list, &free_area[freeorder]);
 
   }
 
-
+  
+  //page = list_entry(free_area[freeorder].next, page_t, list);
+  //list_del_init(page);
 
   
+  //return free_area[freeorder];
+  return &g_pages[page -> index];
 
-  return &g_pages[0];
-
-  //return NULL;
 }
 
 /**
