@@ -272,18 +272,20 @@ void buddy_free(void *addr){
     list_for_each(ptr, &free_area[temp_order]) {
       page = list_entry(ptr, page_t, list);
       printf("Free block in list has address %d and looking for %d. Block has pageindex %d \n", page, BUDDY_ADDR(addr, temp_order), page -> index);
+      // Check whether the page we pulled has the address of a
+      // BUDDY_ADDR(addr, temp_order)
       if(page -> index == pageindex + (1<<temp_order)/PAGE_SIZE){
         printf("MERGING BUDDY with page index %d\n", page -> index);
 
         // TODO Problems here. This is where it gets deleted from one list and
         // added to the next one
-        list_del_init(page);
-        list_add(page, &free_area[temp_order + 1]);
+        list_add(&g_pages[page -> index].list, &free_area[temp_order + 1]);
+        list_del(&g_pages[page -> index].list);
+        //return;
       }
     }
-
+    
     temp_order++;
-    //break;
   }
 
 }
