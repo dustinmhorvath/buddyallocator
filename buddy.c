@@ -54,13 +54,9 @@
 typedef struct {
     
   struct list_head list;
-<<<<<<< Updated upstream
 
   void* address;
 
-=======
-  char* address;
->>>>>>> Stashed changes
   int inuse;
   int index;
 
