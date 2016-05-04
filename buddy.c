@@ -214,18 +214,20 @@ void *buddy_alloc(int size){
 
     printf("Checked page order [%i] has second page index ? %d \n", freeorder, (page -> index) + (1<<(freeorder-1))/PAGE_SIZE);
 
-    // Add the two smaller sizes in order
+    // Add the two smaller sizes in order. ORDER MATTERS because when we get
+    // the front from the queue, we want to get the earlier entry's index
     list_add_tail(&g_pages[ page -> index ].list, &free_area[freeorder]);
+    
     list_add_tail(&g_pages[ page -> index + (1<<(freeorder-1))/PAGE_SIZE ].list, &free_area[freeorder]);
 
   }
 
   
-  //page = list_entry(free_area[freeorder].next, page_t, list);
-  //list_del_init(free_area[freeorder].next);
+  page = list_entry(free_area[freeorder].next, page_t, list);
+  list_del_init(free_area[freeorder].next);
 
   
-  return &g_pages[page -> index];
+  return PAGE_TO_ADDR(page -> index);
 
 }
 
