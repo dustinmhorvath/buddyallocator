@@ -56,7 +56,6 @@ typedef struct {
   char* address;
 
   int inuse;
-  char owner;
   int index;
 
 
@@ -101,9 +100,10 @@ void buddy_init(){
 
   for (i = 0; i < n_pages; i++) {
     g_pages[i].inuse = 0;
-    g_pages[i].owner = '\0';
-    // Correct?
+    
+    // Correct? Seems to output an address if I printf here
     g_pages[i].address = PAGE_TO_ADDR(i);
+
     g_pages[i].index = i;
 
   }
@@ -185,8 +185,20 @@ void *buddy_alloc(int size){
   // Split blocks until small enough
   printf("freeorder is currently [%i] \n", freeorder);
   while(freeorder > blockorder){
-    page_t* page = list_entry(&free_area[freeorder], page_t, list);
-    list_del_init(&free_area[freeorder]);
+
+    // GRRR give me the first element goddammit
+    struct list_head *pos, *q;
+    struct page_t *page;
+    list_for_each(pos, &free_area[freeorder]){
+      page = list_entry(pos, struct page_t, list);
+      list_del(pos);
+      break;
+    }
+
+
+    //page_t* page = list_entry(&(free_area[freeorder].next), page_t, list);
+    
+    //list_del_init(&free_area[freeorder]);
 
     printf("Checked page order [%i] in use ? %d \n", freeorder, page -> inuse);
     printf("Checked page order [%i] has index ? %d \n", freeorder, page -> index); 
