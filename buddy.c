@@ -50,7 +50,9 @@
 /**************************************************************************
  * Public Types
  **************************************************************************/
+
 typedef struct {
+    
   struct list_head list;
 
   void* address;
@@ -58,21 +60,22 @@ typedef struct {
   int inuse;
   int index;
 
-
 } page_t;
-
 
 /**************************************************************************
  * Global Variables
  **************************************************************************/
 
 /* free lists*/
+//21
 struct list_head free_area[MAX_ORDER+1];
 
 /* memory area */
+//2^20 = 1048576
 char g_memory[1<<MAX_ORDER];
 
 /* page structures */
+// [256]
 page_t g_pages[(1<<MAX_ORDER)/PAGE_SIZE];
 
 /**************************************************************************
@@ -87,29 +90,37 @@ page_t g_pages[(1<<MAX_ORDER)/PAGE_SIZE];
 static void *buddy_base_address = 0;
 
 
-
 /**
  * Initialize the buddy system
  */
 void buddy_init(){
+    
   int i;
+  
+  //n_pages = 256
   int n_pages = (1<<MAX_ORDER) / PAGE_SIZE;
 
-  
   buddy_base_address = &g_pages[0];
 
+  //for(0 < 256)
   for (i = 0; i < n_pages; i++) {
     g_pages[i].inuse = 0;
-    
     // Correct? Seems to output an address if I printf here
     g_pages[i].address = PAGE_TO_ADDR(i);
-
     g_pages[i].index = i;
-
+    
+    printf("Inuse:[%i]\n", g_pages[i].inuse);
+    printf("Address:[%i]\n", g_pages[i].address);
+    printf("Index:[%i]\n", g_pages[i].index);
+    printf("\n");
   }
+ 
 
   /* initialize freelist */
+//for(12 < = 20)
   for (i = MIN_ORDER; i <= MAX_ORDER; i++) {
+      /*INIT_LIST_HEAD(ptr) do { (ptr)->next = (ptr); (ptr)->prev = (ptr); } while (0) 
+       this sets free_area[i]'s linked list head pointers next and prev to both point at the head*/
     INIT_LIST_HEAD(&free_area[i]);
   }
 
@@ -118,6 +129,7 @@ void buddy_init(){
 }
 
 unsigned int next_power2(unsigned int size){
+    printf("next_power2(unsigned int size) = %i \n" , size);
   if (size < (1 << MIN_ORDER)) {
     return (1 << MIN_ORDER);
   }
