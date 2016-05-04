@@ -186,17 +186,8 @@ void *buddy_alloc(int size){
   printf("freeorder is currently [%i] \n", freeorder);
   while(freeorder > blockorder){
 
-    // GRRR give me the first element goddammit
-    struct list_head *pos, *q;
-    struct page_t *page;
-    list_for_each(pos, &free_area[freeorder]){
-      page = list_entry(pos, struct page_t, list);
-      list_del(pos);
-      break;
-    }
 
-
-    //page_t* page = list_entry(&(free_area[freeorder].next), page_t, list);
+    page_t* page = list_entry(&(free_area[freeorder].next), page_t, list);
     
     //list_del_init(&free_area[freeorder]);
 
