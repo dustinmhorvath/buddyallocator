@@ -53,7 +53,7 @@
 typedef struct {
   struct list_head list;
 
-  char* address;
+  void* address;
 
   int inuse;
   int index;
@@ -172,10 +172,12 @@ void *buddy_alloc(int size){
   // TODO maybe problems here if they ask for more memory than is available or
   // more than the size of the memory. Will likely segfault if freeorder >
   // MAX_ORDER
-  while(list_empty(&free_area[freeorder]) != 0){
-    printf("free_area order [%i] is not available\n", freeorder);
+  while(list_empty(&free_area[freeorder]) != 0){ //This returns zero when the list IS NOT empty
+    printf("free_area order [%i] has no blocks allotted.\n", freeorder);
     freeorder++;
   }
+  //    page = list_entry(&(page -> list.next), page_t, list);
+  //    page = list_entry(&(page -> list.next), page_t, list);
 
   // Stopgap helps, but doesn't catch memory in use segfault
   if(freeorder > MAX_ORDER){
@@ -186,8 +188,13 @@ void *buddy_alloc(int size){
   printf("freeorder is currently [%i] \n", freeorder);
   while(freeorder > blockorder){
 
+    page_t* page;
+    struct list_head *ptr;
+    for (ptr = free_area[freeorder].next; ptr != &free_area[freeorder]; ptr = ptr->next) {
+      page = list_entry(ptr, page_t, list);
+      break;
+    }
 
-    page_t* page = list_entry(&(free_area[freeorder].next), page_t, list);
     
     //list_del_init(&free_area[freeorder]);
 
