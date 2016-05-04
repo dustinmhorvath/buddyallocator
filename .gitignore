@@ -1,0 +1,6 @@
+nbproject/
+doc/
+*.o
+*.tar.gz
+*.html
+buddy
