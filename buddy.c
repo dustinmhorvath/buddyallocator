@@ -57,6 +57,7 @@ typedef struct {
 
   int inuse;
   char owner;
+  int index;
 
 
 } page_t;
@@ -96,12 +97,14 @@ void buddy_init(){
   int n_pages = (1<<MAX_ORDER) / PAGE_SIZE;
 
   
+  buddy_base_address = &g_pages[0];
 
   for (i = 0; i < n_pages; i++) {
     g_pages[i].inuse = 0;
     g_pages[i].owner = '\0';
     // Correct?
     g_pages[i].address = PAGE_TO_ADDR(i);
+    g_pages[i].index = i;
 
   }
 
@@ -179,25 +182,26 @@ void *buddy_alloc(int size){
     return NULL;
   }
 
+  // Split blocks until small enough
   printf("freeorder is currently [%i] \n", freeorder);
   while(freeorder > blockorder){
-    page_t* page;
-    page = list_entry(&free_area[freeorder], page_t, list);
-    //list_del_init(&free_area[freeorder]);
-    //printf("Checked page order [%i] in use ? %i", freeorder, page -> inuse);
+    page_t* page = list_entry(&free_area[freeorder], page_t, list);
+    list_del_init(&free_area[freeorder]);
+
+    printf("Checked page order [%i] in use ? %d \n", freeorder, page -> inuse);
+    printf("Checked page order [%i] has index ? %d \n", freeorder, page -> index); 
+
+
+    // now working in smaller order
     freeorder--;
+
+  //  list_add_tail(&g_pages[ page -> index ].list, &free_area[freeorder]);
+  //  list_add_tail(&g_pages[ page -> index + (1<<freeorder) ].list, &free_area[freeorder]);
+
   }
 
 
-  //list_del_init(&free_area[MAX_ORDER]);
-  // this line executes without segfault
-  //
-  //list_add(&g_pages[0].list, &free_area[MAX_ORDER]);
-  
-  // this is segfaulting for some reason
-  //
 
-  //list_add(&g_pages[1<<size].list, &free_area[size]);
   
 
   return &g_pages[0];
