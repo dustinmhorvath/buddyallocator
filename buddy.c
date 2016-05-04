@@ -92,8 +92,6 @@ page_t g_pages[(1<<MAX_ORDER)/PAGE_SIZE];
  **************************************************************************/
 
 static void *buddy_base_address = 0;
-static void *buddy_end_address = 0;
-
 
 
 /**
@@ -120,9 +118,7 @@ void buddy_init(){
     printf("Index:[%i]\n", g_pages[i].index);
     printf("\n");
   }
-  
-  buddy_end_address = &g_pages[255].address + 4096;
-  printf("End Address:[%i]\n", buddy_end_address);
+ 
 
   /* initialize freelist */
 //for(12 < = 20)
