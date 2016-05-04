@@ -109,10 +109,10 @@ void buddy_init(){
     g_pages[i].address = PAGE_TO_ADDR(i);
     g_pages[i].index = i;
     
-    printf("Inuse:[%i]\n", g_pages[i].inuse);
-    printf("Address:[%i]\n", g_pages[i].address);
-    printf("Index:[%i]\n", g_pages[i].index);
-    printf("\n");
+    //printf("Inuse:[%i]\n", g_pages[i].inuse);
+    //printf("Address:[%i]\n", g_pages[i].address);
+    //printf("Index:[%i]\n", g_pages[i].index);
+    //printf("\n");
   }
  
 
@@ -163,7 +163,7 @@ unsigned int next_power2(unsigned int size){
  */
 void *buddy_alloc(int size){
 
-  printf("size is currently [%i] \n", size);
+  //printf("size is currently [%i] \n", size);
 
   int blocksize = next_power2(size);
   unsigned int blockorder = 0 ;
@@ -188,8 +188,6 @@ void *buddy_alloc(int size){
     printf("free_area order [%i] has no blocks allotted.\n", freeorder);
     freeorder++;
   }
-  //    page = list_entry(&(page -> list.next), page_t, list);
-  //    page = list_entry(&(page -> list.next), page_t, list);
 
   // Stopgap helps, but doesn't catch memory in use segfault
   if(freeorder > MAX_ORDER){
@@ -201,21 +199,22 @@ void *buddy_alloc(int size){
   page_t* page;
   while(freeorder > blockorder){
 
-    struct list_head *ptr;
+    // Get frontmost item from free_area queue
     page = list_entry(free_area[freeorder].next, page_t, list);
     
-    
-    list_del_init(page);
+    // We have a pointer, so dequeue from list
+    list_del_init(free_area[freeorder].next);
 
     printf("Checked page order [%i] in use ? %d \n", freeorder, page -> inuse);
-    printf("Checked page order [%i] has index ? %d \n", freeorder, page -> index); 
+    printf("Checked page order [%i] has page index ? %d \n", freeorder, page -> index); 
 
 
     // now working in smaller order
     freeorder--;
 
-    printf("Checked page order [%i] has second index ? %d \n", freeorder, (page -> index) + (1<<(freeorder-1))/PAGE_SIZE);
+    printf("Checked page order [%i] has second page index ? %d \n", freeorder, (page -> index) + (1<<(freeorder-1))/PAGE_SIZE);
 
+    // Add the two smaller sizes in order
     list_add_tail(&g_pages[ page -> index ].list, &free_area[freeorder]);
     list_add_tail(&g_pages[ page -> index + (1<<(freeorder-1))/PAGE_SIZE ].list, &free_area[freeorder]);
 
@@ -223,10 +222,9 @@ void *buddy_alloc(int size){
 
   
   //page = list_entry(free_area[freeorder].next, page_t, list);
-  //list_del_init(page);
+  //list_del_init(free_area[freeorder].next);
 
   
-  //return free_area[freeorder];
   return &g_pages[page -> index];
 
 }
