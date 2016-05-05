@@ -228,18 +228,17 @@ void *buddy_alloc(int size){
     // now working in smaller order
     freeorder--;
 
-    printf("Checked page order [%i] has buddy page index ? %d \n", freeorder, front -> index + (1<<(freeorder))/PAGE_SIZE);
+ //   printf("Checked page order [%i] has buddy page index ? %d \n", freeorder, front -> index + (1<<(freeorder))/PAGE_SIZE);
 
     list_add_tail(&g_pages[ front -> index + (1<<(freeorder))/PAGE_SIZE ].list, &free_area[freeorder]);
     //printf("Added index %d \n", front -> index + (1<<(freeorder))/PAGE_SIZE);
   }
 
-  
   front -> inuse = 1;
   front -> inUseOrder = blockorder;
 
-  printf("Returning page address [%i] with pageindex %d \n", &free_area[blockorder].next, front -> index); 
-  
+  //printf("Returning page address [%i] with pageindex %d \n", &free_area[blockorder].next, front -> index); 
+
   return front -> address;
 
 }
@@ -257,35 +256,35 @@ void buddy_free(void *addr){
 
   int pageindex = ADDR_TO_PAGE(addr);
   //int pageindex = ((page_t*)addr) -> index;
-  printf("\nREMOVING addr %d with pageindex %d \n", addr, pageindex);
-  
+  //printf("\nREMOVING addr %d with pageindex %d \n", addr, pageindex);
+
   g_pages[pageindex].inuse = 0;
 
   // Get the inUseOrder of the page at the address provided
   int temp_order = g_pages[pageindex].inUseOrder;
-  printf("remove block addr %d has inUseOrder %d \n", addr, temp_order);
+  //printf("remove block addr %d has inUseOrder %d \n", addr, temp_order);
 
   page_t* page;
-  while(list_empty(&free_area[temp_order]) == 0 && temp_order < MAX_ORDER){
+
+  while(list_empty(&free_area[temp_order]) == 0){ // && temp_order < MAX_ORDER){
     struct list_head *ptr;
 
     list_for_each(ptr, &free_area[temp_order]) {
       page = list_entry(ptr, page_t, list);
-      printf("Free block in list has address %d and looking for %d. Block has pageindex %d \n", page, BUDDY_ADDR(addr, temp_order), page -> index);
-      // Check whether the page we pulled has the address of a
-      // BUDDY_ADDR(addr, temp_order)
-      if(page -> index == pageindex + (1<<temp_order)/PAGE_SIZE){
-        printf("MERGING BUDDY with page index %d\n", page -> index);
+      //printf("Free block in list has address %d and looking for %d. Block has pageindex %d \n", page, BUDDY_ADDR(addr, temp_order), page -> index);
+       
+      if(page -> address == BUDDY_ADDR(addr, temp_order)){
+        //printf("MERGING BUDDY with page index %d\n", page -> index);
 
         // TODO Problems here. This is where it gets deleted from one list and
         // added to the next one
-        list_add(&g_pages[page -> index].list, &free_area[temp_order + 1]);
-        list_del(&g_pages[page -> index].list);
-        //return;
+        list_del(&page -> list);
+        list_add(&page -> list, &free_area[temp_order+1]);
+        break;
       }
     }
-    
     temp_order++;
+    
   }
 
 }
