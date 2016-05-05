@@ -62,6 +62,7 @@ typedef struct {
 
   int inuse;
   int index;
+  int split;
 
   int inUseOrder;
 
@@ -113,6 +114,7 @@ void buddy_init(){
     // Correct? Seems to output an address if I printf here
     g_pages[i].address = PAGE_TO_ADDR(i);
     g_pages[i].index = i;
+    g_pages[i].split = 0;
     
     //printf("Inuse:[%i]\n", g_pages[i].inuse);
     //printf("Address:[%i]\n", g_pages[i].address);
@@ -232,12 +234,14 @@ void *buddy_alloc(int size){
     freeorder--;
 
  //   printf("Checked page order [%i] has buddy page index ? %d \n", freeorder, front -> index + (1<<(freeorder))/PAGE_SIZE);
+    g_pages[ front -> index + (1<<(freeorder))/PAGE_SIZE ].split = 1;
 
     list_add_tail(&g_pages[ front -> index + (1<<(freeorder))/PAGE_SIZE ].list, &free_area[freeorder]);
     if(PRINT){printf("Added page %d \n", front -> index + (1<<(freeorder))/PAGE_SIZE);}
   }
 
   front -> inuse = 1;
+  front -> split = 1;
   front -> inUseOrder = blockorder;
 
   //printf("Returning page address [%i] with pageindex %d \n", &free_area[blockorder].next, front -> index); 
@@ -267,10 +271,61 @@ void buddy_free(void *addr){
   int temp_order = g_pages[pageindex].inUseOrder;
   if(PRINT){printf("remove block addr %d has inUseOrder %d \n", addr, temp_order);}
 
+  /*
+
+  int free_o = temp_order;
+  int buddy_index;
+  int index = 0;
+  int remove_o;
+
+  while(free_o < MAX_ORDER){
+    buddy_index = pageindex + (1<<temp_order)/PAGE_SIZE;   //ADDR_TO_PAGE(BUDDY_ADDR(addr, temp_order));
+
+    if(g_pages[buddy_index].inuse == 0 && g_pages[buddy_index].split == 0){
+      g_pages[pageindex].inuse = 0;
+      g_pages[buddy_index].inuse = 0;
+
+      int index_up;
+      if(index < 3){
+        index_up = 0;
+      }
+      else if(index%2 == 0){
+        index_up = index/2;
+        index_up--;
+      }
+      else{
+        index_up++;
+        index_up = index_up/2;
+        index_up--;
+      }
+
+      g_pages[index_up].split = 0;
+      g_pages[index].inuse = 0;
+      
+      index = index_up;
+
+      list_del(free_area[free_o].next);
+      list_del(free_area[free_o].next);
+
+      struct page_t* insertnew;
+      insertnew = (struct page_t*)malloc(sizeof(page_t));
+      list_add_tail(insertnew, &free_area[free_o + 1]);
+
+      remove_o = 1<<temp_order;
+      remove_o *= 2;
+      free_o = temp_order;
+    }
+    else{
+      free_o = MAX_ORDER;
+    }
+  }
+*/
+
   page_t* page;
 
+  //list_add(&g_pages[pageindex].list, &free_area[temp_order]);
+  
   //list_del(&g_pages[pageindex].list);
-
   while(list_empty(&free_area[temp_order]) == 0){ // && temp_order < MAX_ORDER){
     struct list_head *ptr;
 
@@ -282,9 +337,7 @@ void buddy_free(void *addr){
       if(page -> address == BUDDY_ADDR(addr, temp_order)){
         if(PRINT){printf("MERGING BUDDY with page index %d\n", page -> index);}
 
-        // TODO Problems here. This is where it gets deleted from one list and
-        // added to the next one
-        list_del(&page -> list);
+        list_del_init(&page -> list);
         // Exit as soon as we have the page we want
         break;
       }
@@ -293,6 +346,7 @@ void buddy_free(void *addr){
     
   }
   list_add(&g_pages[pageindex].list, &free_area[temp_order]);
+  
 
 }
 
