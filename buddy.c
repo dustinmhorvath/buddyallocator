@@ -264,11 +264,14 @@ void buddy_free(void *addr){
   int temp_order = g_pages[pageindex].inUseOrder;
   //printf("remove block addr %d has inUseOrder %d \n", addr, temp_order);
 
+  list_del(&g_pages[pageindex].list);
+  
   page_t* page;
 
   while(list_empty(&free_area[temp_order]) == 0){ // && temp_order < MAX_ORDER){
     struct list_head *ptr;
 
+    // Go down each list and look for a free buddy
     list_for_each(ptr, &free_area[temp_order]) {
       page = list_entry(ptr, page_t, list);
       //printf("Free block in list has address %d and looking for %d. Block has pageindex %d \n", page, BUDDY_ADDR(addr, temp_order), page -> index);
@@ -278,14 +281,15 @@ void buddy_free(void *addr){
 
         // TODO Problems here. This is where it gets deleted from one list and
         // added to the next one
-        list_del(&page -> list);
-        list_add(&page -> list, &free_area[temp_order+1]);
+        list_del_init(&page -> list);
+        // Exit as soon as we have the page we want
         break;
       }
     }
     temp_order++;
     
   }
+  list_add(&g_pages[pageindex].list, &free_area[temp_order+1]);
 
 }
 
