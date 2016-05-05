@@ -289,7 +289,7 @@ void buddy_free(void *addr){
     temp_order++;
     
   }
-  list_add(&g_pages[pageindex].list, &free_area[temp_order+1]);
+  list_add(&g_pages[pageindex].list, &free_area[temp_order]);
 
 }
 
