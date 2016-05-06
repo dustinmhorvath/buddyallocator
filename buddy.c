@@ -55,7 +55,7 @@
  **************************************************************************/
 
 typedef struct {
-    
+
   struct list_head list;
 
   void* address;
@@ -100,9 +100,9 @@ static void *buddy_base_address = 0;
  * Initialize the buddy system
  */
 void buddy_init(){
-    
+
   int i;
-  
+
   //n_pages = 256
   int n_pages = (1<<MAX_ORDER) / PAGE_SIZE;
 
@@ -115,19 +115,20 @@ void buddy_init(){
     g_pages[i].address = PAGE_TO_ADDR(i);
     g_pages[i].index = i;
     g_pages[i].split = 0;
-    
+    g_pages[i].inUseOrder = 0;
+
     //printf("Inuse:[%i]\n", g_pages[i].inuse);
     //printf("Address:[%i]\n", g_pages[i].address);
     //printf("Index:[%i]\n", g_pages[i].index);
     //printf("\n");
   }
- 
+
 
   /* initialize freelist */
-//for(12 < = 20)
+  //for(12 < = 20)
   for (i = MIN_ORDER; i <= MAX_ORDER; i++) {
-      /*INIT_LIST_HEAD(ptr) do { (ptr)->next = (ptr); (ptr)->prev = (ptr); } while (0) 
-       this sets free_area[i]'s linked list head pointers next and prev to both point at the head*/
+    /*INIT_LIST_HEAD(ptr) do { (ptr)->next = (ptr); (ptr)->prev = (ptr); } while (0) 
+      this sets free_area[i]'s linked list head pointers next and prev to both point at the head*/
     INIT_LIST_HEAD(&free_area[i]);
   }
 
@@ -205,7 +206,7 @@ void *buddy_alloc(int size){
   //printf("freeorder is currently [%i] \n", freeorder);
   page_t* page;
   page_t* front;
- 
+
   // If no agreement, remove element and remember it as 'front'. Add the
   // second half onto the list of smaller order
   if(freeorder > blockorder){
@@ -233,7 +234,7 @@ void *buddy_alloc(int size){
     // now working in smaller order
     freeorder--;
 
- //   printf("Checked page order [%i] has buddy page index ? %d \n", freeorder, front -> index + (1<<(freeorder))/PAGE_SIZE);
+    //   printf("Checked page order [%i] has buddy page index ? %d \n", freeorder, front -> index + (1<<(freeorder))/PAGE_SIZE);
     g_pages[ front -> index + (1<<(freeorder))/PAGE_SIZE ].split = 1;
 
     list_add_tail(&g_pages[ front -> index + (1<<(freeorder))/PAGE_SIZE ].list, &free_area[freeorder]);
@@ -250,120 +251,124 @@ void *buddy_alloc(int size){
 
 }
 
-/**
- * Free an allocated memory block.
- *
- * Whenever a block is freed, the allocator checks its buddy. If the buddy is
- * free as well, then the two buddies are combined to form a bigger block. This
- * process continues until one of the buddies is not free.
- *
- * @param addr memory block address to be freed
- */
-void buddy_free(void *addr){
-
-  int pageindex = ADDR_TO_PAGE(addr);
-  //int pageindex = ((page_t*)addr) -> index;
-  if(PRINT){printf("\nREMOVING addr %d with pageindex %d \n", addr, pageindex);}
-
-  g_pages[pageindex].inuse = 0;
-
-  // Get the inUseOrder of the page at the address provided
-  int temp_order = g_pages[pageindex].inUseOrder;
-  if(PRINT){printf("remove block addr %d has inUseOrder %d \n", addr, temp_order);}
-
-  /*
-
-  int free_o = temp_order;
-  int buddy_index;
-  int index = 0;
-  int remove_o;
-
-  while(free_o < MAX_ORDER){
-    buddy_index = pageindex + (1<<temp_order)/PAGE_SIZE;   //ADDR_TO_PAGE(BUDDY_ADDR(addr, temp_order));
-
-    if(g_pages[buddy_index].inuse == 0 && g_pages[buddy_index].split == 0){
-      g_pages[pageindex].inuse = 0;
-      g_pages[buddy_index].inuse = 0;
-
-      int index_up;
-      if(index < 3){
-        index_up = 0;
-      }
-      else if(index%2 == 0){
-        index_up = index/2;
-        index_up--;
+void coalesce(){
+  int temp_order = MIN_ORDER;
+  while(list_empty(&free_area[temp_order]) == 0 || temp_order < MAX_ORDER){
+    //while(1){
+    struct list_head *ptr;
+    page_t* page;
+    page_t* buddy;
+    //printf("While!\n");
+    // Go down each list and look for a free buddy
+    for (ptr = free_area[temp_order].next; ptr != &free_area[temp_order]; ptr = ptr->next) {
+      page = list_entry(ptr, page_t, list);
+      int buddyaddress = BUDDY_ADDR(page -> address, page -> inUseOrder);
+      int buddyindex = ADDR_TO_PAGE(buddyaddress);
+      buddy = &g_pages[buddyindex];
+      int lowerindex;
+      if(buddy -> index < page -> index){
+        lowerindex = buddy -> index;
       }
       else{
-        index_up++;
-        index_up = index_up/2;
-        index_up--;
+        lowerindex = page -> index;
       }
+      if(buddy -> inuse == 0 && page -> inUseOrder > 0){// && buddy -> inUseOrder == page -> inUseOrder  ){
+        printf("page inuseorder %d\n", page -> inUseOrder);
 
-      g_pages[index_up].split = 0;
-      g_pages[index].inuse = 0;
-      
-      index = index_up;
+        // THIS IS THE PART THAT DOESN'T WORK CORRECTLY
+        list_del( free_area[temp_order].next );
+        list_del( free_area[temp_order].next );
 
-      list_del(free_area[free_o].next);
-      list_del(free_area[free_o].next);
+        buddy -> inUseOrder = 0;
+        page -> inUseOrder = 0;
 
-      struct page_t* insertnew;
-      insertnew = (struct page_t*)malloc(sizeof(page_t));
-      list_add_tail(insertnew, &free_area[free_o + 1]);
+        list_add( &g_pages[ lowerindex ].list, &free_area[temp_order+1]  );
 
-      remove_o = 1<<temp_order;
-      remove_o *= 2;
-      free_o = temp_order;
-    }
-    else{
-      free_o = MAX_ORDER;
-    }
-  }
-*/
 
-  page_t* page;
 
-  //list_add(&g_pages[pageindex].list, &free_area[temp_order]);
-  
-  //list_del(&g_pages[pageindex].list);
-  while(list_empty(&free_area[temp_order]) == 0){ // && temp_order < MAX_ORDER){
-    struct list_head *ptr;
-
-    // Go down each list and look for a free buddy
-    list_for_each(ptr, &free_area[temp_order]) {
-      page = list_entry(ptr, page_t, list);
-      if(PRINT){printf("Free block in list has address %d and looking for %d. Block has pageindex %d \n", page, BUDDY_ADDR(addr, temp_order), page -> index);}
-       
-      if(page -> address == BUDDY_ADDR(addr, temp_order)){
-        if(PRINT){printf("MERGING BUDDY with page index %d\n", page -> index);}
-
-        list_del_init(&page -> list);
-        // Exit as soon as we have the page we want
-        break;
       }
-    }
-    temp_order++;
-    
-  }
-  list_add(&g_pages[pageindex].list, &free_area[temp_order]);
-  
+      }
+      temp_order++;
 
-}
-
-/**
- * Print the buddy system status---order oriented
- *
- * print free pages in each order.
- */
-void buddy_dump(){
-  int o;
-  for (o = MIN_ORDER; o <= MAX_ORDER; o++) {
-    struct list_head *pos;
-    int cnt = 0;
-    list_for_each(pos, &free_area[o]) {
-      cnt++;
     }
-    printf("%d:%dK ", cnt, (1<<o)/1024);
+
+
+
+
   }
-  printf("\n");
-}
+
+
+  /**
+   * Free an allocated memory block.
+   *
+   * Whenever a block is freed, the allocator checks its buddy. If the buddy is
+   * free as well, then the two buddies are combined to form a bigger block. This
+   * process continues until one of the buddies is not free.
+   *
+   * @param addr memory block address to be freed
+   */
+  void buddy_free(void *addr){
+
+    int pageindex = ADDR_TO_PAGE(addr);
+    //int pageindex = ((page_t*)addr) -> index;
+    if(PRINT){printf("\nREMOVING addr %d with pageindex %d \n", addr, pageindex);}
+
+    g_pages[pageindex].inuse = 0;
+
+    // Get the inUseOrder of the page at the address provided
+    int temp_order = g_pages[pageindex].inUseOrder;
+    if(PRINT){printf("remove block addr %d has inUseOrder %d \n", addr, temp_order);}
+
+    page_t* page;
+
+
+    // THESE AREN'T QUITE WORKING BUT ARE A BETTER IMPLEMENTATION
+    //list_add(&g_pages[pageindex].list, &free_area[temp_order]);
+
+
+
+
+    while(list_empty(&free_area[temp_order]) == 0){ // && temp_order < MAX_ORDER){
+      struct list_head *ptr;
+
+      // Go down each list and look for a free buddy
+      list_for_each(ptr, &free_area[temp_order]) {
+        page = list_entry(ptr, page_t, list);
+        if(PRINT){printf("Free block in list has address %d and looking for %d. Block has pageindex %d \n", page, BUDDY_ADDR(addr, temp_order), page -> index);}
+
+        if(page -> address == BUDDY_ADDR(addr, temp_order)){
+          if(PRINT){printf("MERGING BUDDY with page index %d\n", page -> index);}
+
+          // TODO Problems here. This is where it gets deleted from one list and
+          // added to the next one
+          list_del(&page -> list);
+          // Exit as soon as we have the page we want
+          break;
+        }
+      }
+      temp_order++;
+
+    }
+    list_add(&g_pages[pageindex].list, &free_area[temp_order]);   
+
+    coalesce();
+  }
+
+
+    /**
+     * Print the buddy system status---order oriented
+     *
+     * print free pages in each order.
+     */
+    void buddy_dump(){
+      int o;
+      for (o = MIN_ORDER; o <= MAX_ORDER; o++) {
+        struct list_head *pos;
+        int cnt = 0;
+        list_for_each(pos, &free_area[o]) {
+          cnt++;
+        }
+        printf("%d:%dK ", cnt, (1<<o)/1024);
+      }
+      printf("\n");
+    }
